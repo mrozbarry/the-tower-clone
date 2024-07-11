@@ -17,6 +17,18 @@ export class Tower extends Entity {
     this.targets = [];
     this.time = 0;
     this.lastFired = null;
+    this.turrets = [];
+    this.currentTurretId = 0;
+    this
+      .addTurret()
+      .addTurret();
+  }
+
+  addTurret() {
+    this.turrets.push({
+      lastFired: null,
+    });
+    return this;
   }
 
   update(delta) {
@@ -36,9 +48,12 @@ export class Tower extends Entity {
       return;
     }
 
-    const closest = this.targets[0];
-    const firingAngle = toDeg(closest.entity.angle) + 180;
-    this.fire(new Projectile(jitter(firingAngle, 10), 100));
+    for(let i = 0; i < 10; i++) {
+      const closest = this.targets[i];
+      if (!closest) break;
+      const firingAngle = toDeg(closest.entity.angle) + 180;
+      this.fire(new Projectile(jitter(firingAngle, 10), 200));
+    }
   }
 
   canFire() {
@@ -52,6 +67,13 @@ export class Tower extends Entity {
     }
     this.lastFired = this.time;
     this.game.addEntity(projectile || new Projectile(Math.random() * 359, 100));
+    this.game.soundEffects.playOneOf(
+      'laser-0',
+      'laser-1',
+      'laser-2',
+      'laser-3',
+      'laser-4',
+    );
   }
 
   render() {
@@ -79,7 +101,6 @@ export class Tower extends Entity {
             <Path stroke isClosed>
               <Arc {...target.entity.position()} radius={10} startAngle={0} endAngle={2 * Math.PI}/>
             </Path>
-            <Text x={target.entity.x} y={target.entity.y - 20} text={target.distance} />
           </Group>
         ))}
       </Group>
