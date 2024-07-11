@@ -4,7 +4,7 @@
 import { Entity } from './Base.js';
 import { Enemy } from './Enemy.jsx';
 import { createElement, Group, Properties, Path, MoveTo, LineTo, Arc, Text } from 'declarativas';
-import { toRad, toDeg } from '../lib/math.js';
+import { toRad, toDeg, jitter } from '../lib/math.js';
 import { Projectile } from './Projectile.jsx';
 import { Target } from '../lib/Target.js';
 
@@ -38,7 +38,7 @@ export class Tower extends Entity {
 
     const closest = this.targets[0];
     const firingAngle = toDeg(closest.entity.angle) + 180;
-    this.fire(new Projectile(firingAngle, 100));
+    this.fire(new Projectile(jitter(firingAngle, 10), 100));
   }
 
   canFire() {

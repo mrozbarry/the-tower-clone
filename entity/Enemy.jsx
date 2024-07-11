@@ -4,6 +4,7 @@
 import { Entity } from './Base.js';
 import { createElement, Stateful, Properties, FillRect, StrokeRect } from 'declarativas';
 import { distance, toRad, vecZero } from '../lib/math.js';
+import { Particle } from './Particle.jsx';
 
 export class Enemy extends Entity {
   constructor(angle, velocity, distance, size, color) {
@@ -50,6 +51,9 @@ export class Enemy extends Entity {
   collide(entity) {
     this.game.removeEntity(this);
     this.game.removeEntity(entity);
+    for(let i = 0; i < 30; i++) {
+      this.game.addEntity(new Particle(Math.random() * 360, 10 + (Math.random() * 10), this.x, this.y, 2));
+    }
   }
 }
 

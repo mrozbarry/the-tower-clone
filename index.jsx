@@ -37,10 +37,6 @@ class Game {
       .addEntity(new Spawner(240, 10, 3, 99, 4))
   }
 
-  entityHash() {
-    const ids = this.state.level.entities.map(e => e.id).join(',')
-  }
-
   pushStateUpdate(updaterFunction) {
     this.stateUpdates.push(updaterFunction);
     return this;

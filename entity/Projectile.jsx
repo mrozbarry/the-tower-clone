@@ -4,11 +4,11 @@
 import { Entity } from './Base.js';
 import { createElement, Stateful, Properties, Path, Arc } from 'declarativas';
 import { Particle } from './Particle.jsx';
-import { jitter, toRad } from '../lib/math.js';
+import { jitter, toRad, toDeg } from '../lib/math.js';
 
 export class Projectile extends Entity {
   constructor(angle, velocity) {
-    super(angle, velocity, 0, 0, 2);
+    super(angle, velocity, 0, 0, 3);
     this.life = 45;
   }
 
@@ -20,13 +20,13 @@ export class Projectile extends Entity {
       return;
     }
 
-    if (Math.random() > 0.3) {
+    // if (Math.random() > 0.1) {
       this.game.addEntity(new Particle(
-        this.angle + toRad(180),
+        toDeg(this.angle) + toRad(180),
         this.velocity * 0.1,
         this.x, this.y, 1,
       ))
-    }
+    // }
 
     return this;
   }
