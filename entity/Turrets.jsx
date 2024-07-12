@@ -8,16 +8,23 @@ import { toRad, toDeg, jitter } from '../lib/math.js';
 import { Projectile } from './Projectile.jsx';
 import { Target } from '../lib/Target.js';
 
-export class Tower extends Entity {
-  constructor(size, fireRate, range) {
+export class Turrets extends Entity {
+  constructor(initialCount, fireRate, range) {
     super(0, 0, 0, 0);
-    this.size = size;
     this.fireRate = fireRate;
     this.range = range;
-    this.targets = [];
     this.time = 0;
-    this.lastFired = null;
-    this.health = { max: 100, value: 100 };
+    this.turrets = [];
+    for(let i = 0; i < initialCount; i++) {
+      this.addTurret();
+    }
+  }
+
+  addTurret() {
+    this.turrets.push({
+      target: null,
+      lastFired: null,
+    });
   }
 
   update(delta) {
@@ -25,8 +32,14 @@ export class Tower extends Entity {
   }
 
   reaction() {
+    this.turrets.forEach(t => {
+      if (!t.target?.entity?.game) {
+        t.target= null;
+      }
+    });
+    const alreadyTargetted = this.turrets.map(t => t.target?.entity).filter(e => e);
     this.targets = this.game.state.level.entities
-      .filter(ent => (ent instanceof Enemy))
+      .filter(ent => (ent instanceof Enemy) && !alreadyTargetted.includes(ent))
       .map(entity => new Target(entity))
       .filter(target => target.distance <= this.range)
       .sort((a, b) => {
@@ -37,12 +50,30 @@ export class Tower extends Entity {
       return;
     }
 
-    for(let i = 0; i < 10; i++) {
-      const closest = this.targets[i];
-      if (!closest) break;
-      const firingAngle = toDeg(closest.entity.angle) + 180;
-      this.fire(new Projectile(jitter(firingAngle, 0), 300));
-    }
+    let index = 0;
+
+    this.turrets.forEach(t => {
+      if (index >= this.targets.length) return;
+
+      if (!t.target?.entity) {
+        t.target = this.targets[index];
+        index += 1;
+      }
+      if ((this.time - t.lastFired) < this.fireRate) {
+        return;
+      }
+
+      t.lastFired = this.time;
+      const firingAngle = toDeg(t.target.entity.angle) + 180;
+      this.game.addEntity(new Projectile(firingAngle, 100));
+      this.game.soundEffects.playOneOf(
+        'laser-0',
+        'laser-1',
+        'laser-2',
+        'laser-3',
+        'laser-4',
+      );
+    });
   }
 
   canFire() {
@@ -51,19 +82,9 @@ export class Tower extends Entity {
   }
 
   fire(projectile = null) {
-    return;
     if (!this.canFire()) {
       return;
     }
-    this.lastFired = this.time;
-    this.game.addEntity(projectile || new Projectile(Math.random() * 359, 100));
-    this.game.soundEffects.playOneOf(
-      'laser-0',
-      'laser-1',
-      'laser-2',
-      'laser-3',
-      'laser-4',
-    );
   }
 
   render() {
@@ -86,10 +107,10 @@ export class Tower extends Entity {
           <Arc x={0} y={0} radius={this.range} startAngle={0} endAngle={2 * Math.PI}/>
         </Path>
         <Properties strokeStyle='white' />
-        {this.targets.map((target) => (
+        {this.turrets.map(turret => turret.target && (
           <Group>
             <Path stroke isClosed>
-              <Arc {...target.entity.position()} radius={10} startAngle={0} endAngle={2 * Math.PI}/>
+              <Arc {...turret.target.entity.position()} radius={10} startAngle={0} endAngle={2 * Math.PI}/>
             </Path>
           </Group>
         ))}
