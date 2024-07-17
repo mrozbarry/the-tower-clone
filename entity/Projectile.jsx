@@ -14,7 +14,7 @@ export class Projectile extends Entity {
   update(delta) {
     super.update(delta);
 
-    this.game.addEntity(new Particle(
+    this.game.addLevelEntity(new Particle(
       toDeg(this.angle) + toRad(180),
       this.velocity * 0.1,
       this.x, this.y, 0.2,
@@ -22,13 +22,13 @@ export class Projectile extends Entity {
 
     this.game.withTower((tower) => {
       if (distance(this.position()) > tower.range) {
-        this.game.removeEntity(this);
+        this.game.removeLevelEntity(this);
         this.game.soundEffects.playOneOf(
           'laser-explode-0',
           'laser-explode-1',
         );
         for(let i = 0; i < 10; i++) {
-          this.game.addEntity(new Particle(Math.random() * 360, 150, this.x, this.y, 0.1, { r:255, g:150, b:150 }));
+          this.game.addLevelEntity(new Particle(Math.random() * 360, 150, this.x, this.y, 0.1, { r:255, g:150, b:150 }));
         }
       }
     });

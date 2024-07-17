@@ -5,7 +5,7 @@ import { createElement, Stateful, Path, Rect, Properties, MoveTo, LineTo, FillRe
 // import {createElement, FillRect, Group, Properties, StrokeRect} from "declarativas/src/lib/index.js";
 
 export const Meter = ({ x, y, value, max, width, label, barColor = 'red', borderColor = 'white' }) => {
-  const percent = value / max;
+  const percent = Math.min(value, max) / max;
   const height = 14;
 
   return (

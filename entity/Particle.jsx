@@ -22,7 +22,7 @@ export class Particle extends Entity
     super.update(delta);
     this.lifespanInSeconds -= delta;
     if (this.lifespanInSeconds <= 0) {
-      this.game.removeEntity(this);
+      this.game.removeLevelEntity(this);
     }
     return this;
   }

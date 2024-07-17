@@ -11,6 +11,19 @@ export class Entity {
     this.vy = Math.cos(this.angle);
     this.game = null;
     this.id = Math.random().toString(36).slice(2);
+
+    this.onAttachCallback = () => {};
+    this.onDetachCallback = () => {};
+  }
+
+  onAttach(callback) {
+    this.onAttachCallback = callback;
+    return this;
+  }
+
+  onDetach(callback) {
+    this.onDetachCallback = callback;
+    return this;
   }
 
   position() {
@@ -22,7 +35,16 @@ export class Entity {
 
   attach(game) {
     this.game = game;
+    if (this.game) {
+      this.onAttachCallback();
+    } else {
+      this.onDetachCallback();
+    }
     return this;
+  }
+
+  isAttached() {
+    return !!this.game;
   }
 
   update(delta) {
@@ -38,6 +60,12 @@ export class Entity {
   }
 
   reaction() {
+  }
+
+  prePhysics() {
+  }
+
+  postPhysics() {
   }
 
   render() {

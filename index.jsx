@@ -28,7 +28,8 @@ import { SoundEffects } from './lib/SoundEffects.js';
     const game = (new Game(document.querySelector('canvas'), sfx))
       .pushStateUpdate(state => select('lastFrameTime', replace(performance.now())))
       // level initialization
-      .scheduleNextLoop();
+      .scheduleNextLoop()
+      .switchToStartGame()
 
     document.querySelector('button#fire')
       .addEventListener('click', () => {
@@ -41,7 +42,7 @@ import { SoundEffects } from './lib/SoundEffects.js';
       .addEventListener('click', () => {
         const enemy = new Enemy(Math.random() * 359, 100, 300, 10, 'blue');
         console.log(enemy);
-        game.addEntity(enemy);
+        game.addLevelEntity(enemy);
       });
     document.querySelector('button#shake')
       .addEventListener('click', () => {
@@ -51,5 +52,15 @@ import { SoundEffects } from './lib/SoundEffects.js';
     document.querySelector('button#mute')
       .addEventListener('click', () => {
         sfx.muted = !sfx.muted;
+      });
+
+    document.querySelector('button#start')
+      .addEventListener('click', () => {
+        game.switchToPlaying();
+      });
+
+    document.querySelector('button#dead')
+      .addEventListener('click', () => {
+        game.withTower(t => t.health.value = 0);
       });
   });

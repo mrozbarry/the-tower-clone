@@ -39,7 +39,11 @@ export class Spawner extends Entity
     this.lastSpawned = this.time;
     this.spawnCount -= 1;
 
-    this.game.addEntity(new Enemy(toDeg(this.angle), 100, this.orbitRadius, 6, '#f0f'))
+    this.game.addLevelEntity(new Enemy(
+      toDeg(this.angle), this.orbitRadius,
+      // Math.floor(Math.random() * Enemy.presets.length),
+      Math.floor(Math.random() * 20),
+    ));
   }
 
   update(delta) {

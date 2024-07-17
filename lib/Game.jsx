@@ -1,7 +1,7 @@
 /**
  * @jsx createElement
  */
-import { render, createElement, Group, Stateful, Translate, Properties, FillRect } from 'declarativas';
+import { render, createElement, Group, Stateful, Translate, Properties, FillRect, Text } from 'declarativas';
 import { composable, select, replace, concat } from 'composable-state';
 import { jitter } from '../lib/math.js';
 import { Enemy } from '../entity/Enemy.jsx';
@@ -9,7 +9,14 @@ import { Projectile } from '../entity/Projectile.jsx';
 import { Tower } from '../entity/Tower.jsx';
 import { Spawner } from '../entity/Spawner.jsx';
 import { Meter } from '../components/Meter.jsx';
-import { Turrets } from '../entity/Turrets.jsx';
+import { Turret } from '../entity/Turret.jsx';
+
+const mode = {
+  startGame: Symbol('startGame'),
+  playing: Symbol('playing'),
+  upgrading: Symbol('upgrading'),
+  superDead: Symbol('superDead'),
+};
 
 
 export class Game {
@@ -20,8 +27,12 @@ export class Game {
     this.timeStep = 1/120
     this.stateUpdates = [];
     this.state = {
+      mode: mode.playing,
       lastFrameTime: null,
       shakeFor: 0,
+      player: {
+        entities: [],
+      },
       level: {
         number: 1,
         entities: [],
@@ -37,12 +48,17 @@ export class Game {
     this.handleEntities = this.handleEntities.bind(this);
 
     this
-      .addEntity(new Tower(20, 1, 200))
-      .addEntity(new Turrets(3, 1, 200))
-      .addEntity(new Spawner(0, 10, 1, 50, 0))
-      .addEntity(new Spawner(120, 20, 1.5, 50, 2))
-      .addEntity(new Spawner(240, 30, 2, 50, 4))
+      .addPlayerEntity(new Tower(20, 1, 200))
+
+    for(let t= 0; t < 20; t++) {
+      this.addPlayerEntity(new Turret(.8, 200))
+    }
   }
+
+  entities() {
+    return [...this.state.player.entities, ...this.state.level.entities];
+  }
+
 
   pushStateUpdate(updaterFunction) {
     this.stateUpdates.push(updaterFunction);
@@ -52,21 +68,35 @@ export class Game {
   loop(milliseconds) {
     const delta = (milliseconds - this.state.lastFrameTime) / 1000;
     this.state.lastFrameTime = milliseconds;
-    this.accumulator += delta;
 
     this.handleStateUpdates(delta);
 
-    while (this.accumulator > this.timeStep) {
-      this.accumulator -= this.timeStep;
-      this
-        .handleEntities(delta)
-        .handleCollisions(Tower, Enemy)
-        .handleCollisions(Enemy, Projectile)
+    this.prePhysics();
+
+    if ([mode.superDead, mode.playing].includes(this.state.mode)) {
+      this.accumulator += delta;
+
+      while (this.accumulator > this.timeStep) {
+        const entities = this.entities();
+        this.accumulator -= this.timeStep;
+        this
+          .handleEntities(delta, entities)
+          .handleCollisions(Tower, Enemy, entities)
+          .handleCollisions(Enemy, Projectile, entities)
+      }
     }
+
+    this.postPhysics();
 
     this
       .draw(delta)
       .scheduleNextLoop();
+
+    this.withTower((tower) => {
+      if (tower.health.value === 0) {
+        this.switchToSuperDead();
+      }
+    });
 
     return this;
   }
@@ -80,22 +110,32 @@ export class Game {
     return this;
   }
 
-  handleEntities(delta) {
-    this.state.level.entities.forEach(p => p.update(delta));
-    this.state.level.entities.forEach(p => p.reaction());
+  handleEntities(delta, entities) {
+    entities.forEach(p => p.update(delta));
+    entities.forEach(p => p.reaction());
     return this;
   }
 
-  handleCollisions(sourceClass, targetsClass) {
-    for(const source of this.state.level.entities) {
+  handleCollisions(sourceClass, targetsClass, entities) {
+    for(const source of entities) {
       if (!(source instanceof sourceClass)) continue;
 
-      for(const target of this.state.level.entities) {
+      for(const target of entities) {
         if (!(target instanceof targetsClass)) continue;
 
         source.testCollision(target);
       }
     }
+    return this;
+  }
+
+  prePhysics() {
+    this.entities().forEach(p => p.prePhysics());
+    return this;
+  }
+
+  postPhysics() {
+    this.entities().forEach(p => p.postPhysics());
     return this;
   }
 
@@ -113,12 +153,21 @@ export class Game {
           <Properties fillStyle='black' strokeStyle='white' />
           <FillRect x={0} y={0} w={this.context.canvas.width} h={this.context.canvas.height} />
           <Translate x={jitter(this.context.canvas.width / 2, jitterAmount)} y={jitter(this.context.canvas.height / 2, jitterAmount)} />
-          {this.state.level.entities.map(p => p.render(this))}
+          {this.entities().map(p => p.render(this))}
         </Stateful>
         <Stateful>
           {this.withTower((tower) => (
             <Meter x={10} y={10} value={tower.health.value} max={tower.health.max} width={200} label="Health" />
           ))}
+          {this.everyTurret((turret, index) => (
+            <Meter x={10} y={30 + (index * 15)} value={(turret.time - turret.lastFired) / turret.fireRate} max={1} width={75} label={`Turret ${index + 1}`} barColor="yellow" />
+          ))}
+          {this.state.mode === mode.superDead && (
+            <Group>
+              <Properties textAlign="center" textBaseline="middle" font="32px bold sans-serif" fillStyle='#f0f' />
+              <Text x={this.context.canvas.width / 2} y={this.context.canvas.height / 2} text="You dead"/>
+            </Group>
+          )}
         </Stateful>
       </Group>,
       this.context,
@@ -128,11 +177,21 @@ export class Game {
 
   scheduleNextLoop() {
     requestAnimationFrame(this.loop);
-    // setTimeout(() => this.loop(performance.now()), 0);
+    //setTimeout(() => this.loop(performance.now()), 0);
     return this;
   }
 
-  removeEntity(entity) {
+  addLevelEntity(entity) {
+    this.pushStateUpdate(() => (
+      select(
+        'level.entities',
+        concat(entity.attach(this)),
+      )
+    ));
+    return this;
+  }
+
+  removeLevelEntity(entity) {
     this.pushStateUpdate(() => (
       select(
         'level.entities',
@@ -145,23 +204,27 @@ export class Game {
     ));
   }
 
-  addEntity(entity) {
+  addPlayerEntity(entity) {
     this.pushStateUpdate(() => (
       select(
-        'level.entities',
+        'player.entities',
         concat(entity.attach(this)),
       )
     ));
     return this;
   }
 
-  addProjectile(projectile) {
-    const now = performance.now();
-    if ((now -this.state.tower.lastFiredAt) < (this.state.tower.fireRate * 1000)) {
-      return;
-    }
-    this.state.tower.lastFiredAt = now;
-    this.addEntity(projectile);
+  removePlayerEntity(entity) {
+    this.pushStateUpdate(() => (
+      select(
+        'player.entities',
+        replace(entities => {
+          const updated = entities.filter(e => e != entity);
+          entity.attach(null);
+          return updated;
+        }),
+      )
+    ));
   }
 
   shakeFor(seconds) {
@@ -169,7 +232,61 @@ export class Game {
   }
 
   withTower(callback) {
-    return callback(this.state.level.entities.find(e => e instanceof Tower));
+    return callback(this.state.player.entities.find(e => e instanceof Tower));
+  }
+
+  everyTurret(callback) {
+    return this.state.player.entities
+      .filter(e => e instanceof Turret)
+      .map((turret, index) => callback(turret, index));
+  }
+
+  switchMode(toMode) {
+    if (this.state.mode === toMode) {
+      return false;
+    }
+    this.state.mode = toMode;
+    return true;
+  }
+
+  switchToStartGame() {
+    if (!this.switchMode(mode.startGame)) return;
+
+    document.querySelector('dialog#dialog-start').showModal()
+
+    return this;
+  }
+
+  switchToPlaying() {
+    if (!this.switchMode(mode.playing)) return;
+
+    document.querySelector('dialog#dialog-start').close()
+
+    console.log('switchToPlaying');
+    const numberOfSpawners = 10;
+    const angleDelta = 360 / numberOfSpawners;
+    for(let i = 0; i < numberOfSpawners; i++) {
+    this
+      .addLevelEntity(new Spawner(angleDelta * i, 10, 1.5, 50, 0))
+    }
+
+    return this;
+  }
+
+  switchToUpgrading() {
+    if (!this.switchMode(mode.upgrading)) return;
+
+    document.querySelector('dialog#dialog-start').close()
+
+    return this;
+  }
+
+  switchToSuperDead() {
+    if (!this.switchMode(mode.superDead)) return;
+
+    document.querySelector('dialog#dialog-start').close()
+    setTimeout(() => this.switchToStartGame(), 5000);
+
+    return this;
   }
 }
-
