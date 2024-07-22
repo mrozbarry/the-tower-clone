@@ -69,4 +69,12 @@ import { Turret } from './entity/Turret.jsx';
       .addEventListener('click', () => {
         game.addPlayerEntity(new Turret(1, 200));
       });
+
+    window.addEventListener('blur', () => {
+      game.pause();
+    });
+
+    window.addEventListener('focus', () => {
+      game.resume();
+    });
   });
