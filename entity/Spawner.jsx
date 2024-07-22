@@ -1,22 +1,23 @@
-/**
+/*f
  * @jsx createElement
  */
-import { Entity } from './Base.js';
+import { Base } from './Base.js';
 import { createElement, Stateful, Properties, StrokeRect, Text } from 'declarativas';
 import { toRad, toDeg } from '../lib/math.js';
 import { Enemy } from './Enemy.jsx';
 
-export class Spawner extends Entity
+export class Spawner extends Base
 {
-  constructor(angle, velocity, spawnRate, spawnCount, lastSpawned) {
+  constructor(factoryFn, angle, velocity, spawnRate, spawnCount, radius = 250) {
     super(angle, velocity)
 
     this.spawnRate = spawnRate;
     this.spawnCount = spawnCount;
-    this.orbitRadius = 250;
+    this.orbitRadius = radius;
     this.calculateXY();
     this.time = 0;
-    this.lastSpawned = 0 - lastSpawned;
+    this.lastSpawned = 0;
+    this.factoryFn = factoryFn;
   }
 
   calculateXY() {
@@ -39,11 +40,7 @@ export class Spawner extends Entity
     this.lastSpawned = this.time;
     this.spawnCount -= 1;
 
-    this.game.addLevelEntity(new Enemy(
-      toDeg(this.angle), this.orbitRadius,
-      // Math.floor(Math.random() * Enemy.presets.length),
-      Math.floor(Math.random() * 20),
-    ));
+    this.game.addLevelEntity(this.factoryFn(this.x, this.y));
   }
 
   update(delta) {
@@ -51,6 +48,12 @@ export class Spawner extends Entity
     this.angle += toRad(this.velocity * delta);
     this.calculateXY();
     this.spawn();
+  }
+
+  postPhysics() {
+    if (this.spawnCount === 0) {
+      this.game.removeLevelEntity(this);
+    }
   }
 
   render() {

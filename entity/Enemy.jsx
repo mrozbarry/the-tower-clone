@@ -1,56 +1,74 @@
 /**
  * @jsx createElement
  */
-import { Entity } from './Base.js';
-import { createElement, Stateful, Properties, FillRect, StrokeRect } from 'declarativas';
-import { distance, toRad, toDeg, vecZero } from '../lib/math.js';
+import { Entity } from './Entity.js';
+import { createElement, Stateful, Properties, FillRect } from 'declarativas';
 import { Particle } from './Particle.jsx';
-
-const presets = [
-  { size: 4, speed: 100, hits: 1, rgb: { r: 180, g: 180, b: 255 } },
-  { size: 10, speed: 60, hits: 3, rgb: { r: 255, g: 255, b: 180} },
-  { size: 15, speed: 30, hits: 8, rgb: { r: 255, g: 180, b: 180} },
-];
+import { TargetsTower } from './Traits/TargetsTower.js';
+import { HasCollision } from './Traits/HasCollision.js';
+import { Projectile } from './Projectile.jsx';
 
 export class Enemy extends Entity {
-  constructor(angle, distance, sizePreset) {
-    const attributes =  { ...(presets[sizePreset] || presets[0]) };
+  constructor(x, y, speed = 1, size = 1, hits = 1, moneyValue = 0, rgb = { r: 255, g: 255, b: 255 }) {
     super(
-      angle + 180, attributes.speed,
-      Math.sin(toRad(angle)) * distance,
-      Math.cos(toRad(angle)) * distance,
-      attributes.size,
+      x, y,
+      [
+        new TargetsTower(speed),
+        new HasCollision([Projectile], (projectile) => {
+          this.collide(projectile);
+        }),
+        // new HealthBar
+      ]
     );
-    this.attributes = attributes;
+    this.speed = speed;
+    this.size = size;
+    this.hits = hits
+    this.moneyValue = moneyValue;
+    this.rgb = rgb;
+  }
+
+  setSpeed(speed) {
+    this.speed = speed;
+    return this;
+  }
+
+  setSize(size) {
+    this.size = size;
+    return this;
+  }
+
+  setHits(hits) {
+    this.hits = hits;
+    return this;
+  }
+
+  setMoneyValue(moneyValue) {
+    this.moneyValue = moneyValue;
+    return this;
+  }
+
+  setRgb(rgb) {
+    this.rgb = rgb;
+    return this;
   }
 
   render() {
-    const half = this.attributes.size / 2;
-    const { rgb } = this.attributes;
+    const half = this.size / 2;
     return (
       <Stateful>
-        <Properties fillStyle={`rgb(${rgb.r}, ${rgb.g}, ${rgb.b})`} />
-        <FillRect x={this.x - half} y={this.y + -half} w={this.attributes.size} h={this.attributes.size} />
+        <Properties fillStyle={`rgb(${this.rgb.r}, ${this.rgb.g}, ${this.rgb.b})`} />
+        <FillRect x={this.x - half} y={this.y + -half} w={this.size} h={this.size} />
       </Stateful>
     );
   }
 
   collide(entity) {
     this.game.removeLevelEntity(entity);
-    this.attributes.hits -= 1;
-    if (this.attributes.hits === 0) {
+    this.hits -= 1;
+    if (this.hits === 0) {
       this.game.removeLevelEntity(this);
-      for(let i = 0; i < 30; i++) {
-        this.game.addLevelEntity(new Particle(
-          Math.random() * 360,
-          10 + (Math.random() * 10),
-          this.x, this.y,
-          2,
-          this.attributes.rgb,
-        ));
-      }
+      Particle.explode(this.game, this.x, this.y, 30, this.rgb);
+      this.game.state.player.money += this.moneyValue;
     }
   }
 }
-
-Enemy.presets = presets;

@@ -10,6 +10,9 @@ import { Tower } from '../entity/Tower.jsx';
 import { Spawner } from '../entity/Spawner.jsx';
 import { Meter } from '../components/Meter.jsx';
 import { Turret } from '../entity/Turret.jsx';
+import { Money } from '../components/Money.jsx';
+import { Grunt } from '../entity/Enemy/Grunt.jsx';
+import { Thug } from '../entity/Enemy/Thug.jsx';
 
 const mode = {
   startGame: Symbol('startGame'),
@@ -22,6 +25,7 @@ const mode = {
 export class Game {
   constructor(canvas, soundEffects) {
     this.context = canvas.getContext('2d');
+    this.scheduleHandler = null;
     this.soundEffects = soundEffects;
     this.accumulator = 0;
     this.timeStep = 1/120
@@ -32,6 +36,7 @@ export class Game {
       shakeFor: 0,
       player: {
         entities: [],
+        money: 0,
       },
       level: {
         number: 1,
@@ -50,6 +55,27 @@ export class Game {
     this
       .addPlayerEntity(new Tower(20, 1, 200))
       .addPlayerEntity(new Turret(1, 200))
+  }
+
+  calculateLevel(number) {
+    return [
+      new Spawner(
+        (x, y) => new Grunt(x, y),
+        0,
+        30,
+        1,
+        10,
+        500
+      ),
+      new Spawner(
+        (x, y) => new Thug(x, y),
+        180,
+        30,
+        11,
+        1,
+        500
+      ),
+    ];
   }
 
   entities() {
@@ -86,7 +112,8 @@ export class Game {
       }
     }
 
-    this.postPhysics();
+    this.postPhysics()
+      .checkWaveFinished();
 
     this
       .draw(delta)
@@ -98,6 +125,14 @@ export class Game {
       }
     });
 
+    return this;
+  }
+
+  checkWaveFinished() {
+    if (this.state.level.entities.length > 0) {
+      return;
+    }
+    console.log('wave complete');
     return this;
   }
 
@@ -155,6 +190,7 @@ export class Game {
           <Translate x={jitter(this.context.canvas.width / 2, jitterAmount)} y={jitter(this.context.canvas.height / 2, jitterAmount)} />
           {this.entities().map(p => p.render(this))}
         </Stateful>
+
         <Stateful>
           {this.withTower((tower) => (
             <Meter x={10} y={10} value={tower.health.value} max={tower.health.max} width={200} label="Health" />
@@ -168,6 +204,7 @@ export class Game {
               <Text x={this.context.canvas.width / 2} y={this.context.canvas.height / 2} text="You dead"/>
             </Group>
           )}
+          <Money x={400} y={20} money={this.state.player.money}/>
         </Stateful>
       </Group>,
       this.context,
@@ -176,9 +213,14 @@ export class Game {
   }
 
   scheduleNextLoop() {
-    requestAnimationFrame(this.loop);
-    //setTimeout(() => this.loop(performance.now()), 0);
+    this.scheduleHandler = requestAnimationFrame(this.loop);
+    //this.scheduleHandler = setTimeout(() => this.loop(performance.now()), 0);
     return this;
+  }
+
+  unschedule() {
+    cancelAnimationFrame(this.scheduleHandler);
+    //clearTimeout(this.scheduleHandle);
   }
 
   addLevelEntity(entity) {
@@ -262,13 +304,10 @@ export class Game {
 
     document.querySelector('dialog#dialog-start').close()
 
+    this.calculateLevel(1)
+      .forEach(ent => this.addLevelEntity(ent));
+
     console.log('switchToPlaying');
-    const numberOfSpawners = 1;
-    const angleDelta = 360 / numberOfSpawners;
-    for(let i = 0; i < numberOfSpawners; i++) {
-    this
-      .addLevelEntity(new Spawner(angleDelta * i, 10, 1.5, 50, 0))
-    }
 
     return this;
   }
@@ -288,5 +327,16 @@ export class Game {
     setTimeout(() => this.switchToStartGame(), 5000);
 
     return this;
+  }
+
+  pause() {
+    this.unschedule();
+    this.state.lastFrameTime = null;
+  }
+
+  resume() {
+    this.pause();
+    this.state.lastFrameTime = performance.now();
+    this.scheduleNextLoop();
   }
 }

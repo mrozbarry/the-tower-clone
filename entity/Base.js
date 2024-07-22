@@ -1,6 +1,6 @@
 import { distance, toRad } from '../lib/math.js';
 
-export class Entity {
+export class Base {
   constructor(angle, velocity, x = 0, y = 0, size = 1) {
     this.angle = toRad(angle);
     this.velocity = velocity;
