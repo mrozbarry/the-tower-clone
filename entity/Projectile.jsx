@@ -1,23 +1,23 @@
 /**
  * @jsx createElement
  */
-import { Entity } from './Base.js';
+import { Base } from './Base.js';
 import { createElement, Stateful, Properties, Path, Arc } from 'declarativas';
 import { Particle } from './Particle.jsx';
 import { jitter, toRad, toDeg, distance } from '../lib/math.js';
 
-export class Projectile extends Entity {
+export class Projectile extends Base {
   constructor(angle, velocity) {
-    super(angle, velocity, 0, 0, 3);
+    super(angle, velocity, 0, 0, 2);
   }
 
   update(delta) {
     super.update(delta);
 
     this.game.addLevelEntity(new Particle(
-      toDeg(this.angle) + toRad(180),
-      this.velocity * 0.1,
-      this.x, this.y, 0.2,
+      // toDeg(this.angle) + toRad(180),
+      // this.velocity * 0.1,
+      this.x, this.y, .1,
     ));
 
     this.game.withTower((tower) => {
@@ -28,7 +28,10 @@ export class Projectile extends Entity {
           'laser-explode-1',
         );
         for(let i = 0; i < 10; i++) {
-          this.game.addLevelEntity(new Particle(Math.random() * 360, 150, this.x, this.y, 0.1, { r:255, g:150, b:150 }));
+          this.game.addLevelEntity(new Particle(
+            // Math.random() * 360, 150,
+            this.x, this.y, 0.1, { r:255, g:150, b:150 }
+          ));
         }
       }
     });
