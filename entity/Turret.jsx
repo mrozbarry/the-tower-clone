@@ -1,14 +1,12 @@
 /**
  * @jsx createElement
  */
-import { Entity } from './Base.js';
-import { Enemy } from './Enemy.jsx';
-import { createElement, Group, Properties, Path, MoveTo, LineTo, Arc, Text } from 'declarativas';
-import { toRad, toDeg, jitter } from '../lib/math.js';
+import { Base } from './Base.js';
+import { createElement, Group, Properties, Path, MoveTo, LineTo, Arc } from 'declarativas';
+import { toRad, toDeg } from '../lib/math.js';
 import { Projectile } from './Projectile.jsx';
-import { Target } from '../lib/Target.js';
 
-export class Turret extends Entity {
+export class Turret extends Base {
   constructor(fireRate, range, x = 0, y = 0) {
     super(0, 0, x, y);
     this.fireRate = fireRate;
@@ -33,6 +31,7 @@ export class Turret extends Entity {
 
   prePhysics() {
     if (this.target && !this.target.entity.isAttached()) {
+      console.log('Target.prePhysics.removeTarget');
       this.setTarget(null);
     }
   }
@@ -55,7 +54,7 @@ export class Turret extends Entity {
     }
 
     this.lastFired = this.time;
-    const firingAngle = toDeg(this.target.entity.angle) + 180;
+    const firingAngle = toDeg(Math.atan2(this.target.entity.x, this.target.entity.y));
     this.game.addLevelEntity(new Projectile(firingAngle, 200));
     this.game.soundEffects.playOneOf(
       'laser-0',
@@ -92,14 +91,3 @@ export class Turret extends Entity {
     );
   }
 }
-
-
-/*
-        {this.targets.map((target) => (
-          <Group>
-            <Path stroke isClosed>
-              <Arc {...target.entity.position()} radius={10} startAngle={0} endAngle={2 * Math.PI}/>
-            </Path>
-          </Group>
-        ))}
- */

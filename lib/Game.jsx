@@ -49,16 +49,16 @@ export class Game {
 
     this
       .addPlayerEntity(new Tower(20, 1, 200))
-
-    for(let t= 0; t < 20; t++) {
-      this.addPlayerEntity(new Turret(.8, 200))
-    }
+      .addPlayerEntity(new Turret(1, 200))
   }
 
   entities() {
     return [...this.state.player.entities, ...this.state.level.entities];
   }
 
+  entitiesOfType(instanceClass) {
+    return this.entities.filter(e => e instanceof instanceClass);
+  }
 
   pushStateUpdate(updaterFunction) {
     this.stateUpdates.push(updaterFunction);
@@ -263,7 +263,7 @@ export class Game {
     document.querySelector('dialog#dialog-start').close()
 
     console.log('switchToPlaying');
-    const numberOfSpawners = 10;
+    const numberOfSpawners = 1;
     const angleDelta = 360 / numberOfSpawners;
     for(let i = 0; i < numberOfSpawners; i++) {
     this

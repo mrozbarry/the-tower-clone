@@ -4,6 +4,7 @@ import { Projectile } from './entity/Projectile.jsx';
 import { Game } from './lib/Game.jsx';
 
 import { SoundEffects } from './lib/SoundEffects.js';
+import { Turret } from './entity/Turret.jsx';
 
 (new SoundEffects())
   .queue('forceField-0', new URL('./assets/sfx/forceField_000.ogg', import.meta.url))
@@ -62,5 +63,10 @@ import { SoundEffects } from './lib/SoundEffects.js';
     document.querySelector('button#dead')
       .addEventListener('click', () => {
         game.withTower(t => t.health.value = 0);
+      });
+
+    document.querySelector('button#add-turret')
+      .addEventListener('click', () => {
+        game.addPlayerEntity(new Turret(1, 200));
       });
   });

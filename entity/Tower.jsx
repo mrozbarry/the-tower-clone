@@ -1,14 +1,14 @@
 /**
  * @jsx createElement
  */
-import { Entity } from './Base.js';
+import { Base } from './Base.js';
 import { Enemy } from './Enemy.jsx';
 import { createElement, Group, Properties, Path, MoveTo, LineTo, Arc, Text } from 'declarativas';
 import { toRad, toDeg, jitter } from '../lib/math.js';
 import { Projectile } from './Projectile.jsx';
 import { Target } from '../lib/Target.js';
 
-export class Tower extends Entity {
+export class Tower extends Base {
   constructor(size, fireRate, range) {
     super(0, 0, 0, 0);
     this.size = size;
@@ -31,8 +31,14 @@ export class Tower extends Entity {
       return;
     }
 
+    const alreadyAssigned = this.game
+      .everyTurret((turret) => {
+        return turret.target?.entity;
+      })
+      .filter(ent => ent);
+
     this.targets = this.game.state.level.entities
-      .filter(ent => (ent instanceof Enemy))
+      .filter(ent => (ent instanceof Enemy) && !alreadyAssigned.includes(ent))
       .map(entity => new Target(entity))
       .filter(target => target.distance <= this.range)
       .sort((a, b) => {
